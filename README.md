@@ -2,6 +2,9 @@
 
 rFlash is a simple game which ressembles a maze made with SDL2 in C++.
 
+## Requirements
+You need cmake and and make to build this!
+
 ## Building
 
 Run:
