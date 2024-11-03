@@ -16,6 +16,7 @@ mkdir -p build
 cd build
 cmake ..
 make
+mv assets/ build/assets/
 ```
 
 And run it:

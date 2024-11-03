@@ -5,9 +5,15 @@ set(CMAKE_CXX_STANDARD 23)
 
 set(SRC src/main.cpp)
 
-find_package(SDL2 REQUIRED)
+# Help CMake find the SDL2 and SDL2_mixer packages
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
-include_directories(${SDL2_INCLUDE_DIRS} /usr/include/SDL2)
+find_package(SDL2 REQUIRED)
+find_package(SDL2_mixer REQUIRED)
+
+include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_MIXER_INCLUDE_DIRS})
 
 add_executable(rFlash ${SRC})
-target_link_libraries(rFlash ${SDL2_LIBRARIES})
+
+# Explicitly link against SDL2 and SDL2_mixer
+target_link_libraries(rFlash ${SDL2_LIBRARIES} SDL2_mixer)

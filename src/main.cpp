@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -50,6 +51,9 @@ typedef struct
   Uint32 lastFrame;
   double deltaTime;
   bool showMinimap;
+  Mix_Chunk *footstepSound;
+  Mix_Chunk *sprintSound;
+  Mix_Music *backgroundMusic;
 } GameState;
 
 // Function prototypes
@@ -91,6 +95,35 @@ initGame (GameState *game)
       = (uint32_t *)malloc (WINDOW_WIDTH * WINDOW_HEIGHT * sizeof (uint32_t));
   if (!game->screenBuffer)
     return false;
+
+  if (Mix_OpenAudio (44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+    {
+      printf ("SDL_mixer could not initialize! SDL_mixer Error: %s\n",
+              Mix_GetError ());
+      return false;
+    }
+
+  // Load sound effects
+  game->footstepSound = Mix_LoadWAV ("assets/footstep.wav");
+  game->sprintSound = Mix_LoadWAV ("assets/sprint.wav");
+  if (!game->footstepSound || !game->sprintSound)
+    {
+      printf ("Failed to load sound effect! SDL_mixer Error: %s\n",
+              Mix_GetError ());
+      return false;
+    }
+
+  // Load background music
+  game->backgroundMusic = Mix_LoadMUS ("assets/background.mp3");
+  if (!game->backgroundMusic)
+    {
+      printf ("Failed to load background music! SDL_mixer Error: %s\n",
+              Mix_GetError ());
+      return false;
+    }
+
+  // Start playing background music
+  Mix_PlayMusic (game->backgroundMusic, -1); // -1 means loop indefinitely
 
   // Initialize player
   game->player.posX = 1.5;
@@ -217,6 +250,21 @@ void
 handleInput (GameState *game)
 {
   SDL_Event event;
+
+  const uint8_t *keys = SDL_GetKeyboardState (NULL);
+
+  if (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_S])
+    {
+      if (game->player.sprinting)
+        {
+          Mix_PlayChannel (-1, game->sprintSound, 0);
+        }
+      else
+        {
+          Mix_PlayChannel (-1, game->footstepSound, 0);
+        }
+    }
+
   while (SDL_PollEvent (&event))
     {
       if (event.type == SDL_QUIT)
@@ -231,8 +279,6 @@ handleInput (GameState *game)
             }
         }
     }
-
-  const uint8_t *keys = SDL_GetKeyboardState (NULL);
 
   // Update sprint state and speed
   game->player.sprinting
@@ -587,30 +633,59 @@ renderFrame (GameState *game)
 }
 
 // Cleanup resources
-void cleanupGame(GameState* game) {
-    if (game) {
-        if (game->screenBuffer) {
-            free(game->screenBuffer);
-            game->screenBuffer = NULL;
+void
+cleanupGame (GameState *game)
+{
+  if (game)
+    {
+      if (game->screenBuffer)
+        {
+          free (game->screenBuffer);
+          game->screenBuffer = NULL;
         }
-        
-        if (game->screenTexture) {
-            SDL_DestroyTexture(game->screenTexture);
-            game->screenTexture = NULL;
+
+      if (game->screenTexture)
+        {
+          SDL_DestroyTexture (game->screenTexture);
+          game->screenTexture = NULL;
         }
-        
-        if (game->renderer) {
-            SDL_DestroyRenderer(game->renderer);
-            game->renderer = NULL;
+
+      if (game->renderer)
+        {
+          SDL_DestroyRenderer (game->renderer);
+          game->renderer = NULL;
         }
-        
-        if (game->window) {
-            SDL_DestroyWindow(game->window);
-            game->window = NULL;
+
+      if (game->window)
+        {
+          SDL_DestroyWindow (game->window);
+          game->window = NULL;
         }
-        
-        SDL_Quit();
+
+      SDL_Quit ();
     }
+
+  if (game->footstepSound)
+    {
+
+      Mix_FreeChunk (game->footstepSound);
+    }
+
+  if (game->sprintSound)
+    {
+
+      Mix_FreeChunk (game->sprintSound);
+    }
+
+  if (game->backgroundMusic)
+    {
+
+      Mix_FreeMusic (game->backgroundMusic);
+    }
+
+  Mix_CloseAudio ();
+
+  Mix_Quit ();
 }
 
 // Main function
